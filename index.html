@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>오늘 뭐 먹지?</title>
+<style>
+:root{--bg:#fff7ed;--card:#ffffff;--text:#2b1d14;--sub:#8a6f5c;--accent:#e8590c;--accent-text:#ffffff;--chip:#ffe8d1;--chip-on:#e8590c;--chip-on-text:#ffffff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1612;--card:#2a201a;--text:#fbeee0;--sub:#b89a84;--accent:#ff8a3d;--accent-text:#1d1612;--chip:#3a2b21;--chip-on:#ff8a3d;--chip-on-text:#1d1612}}
+:root[data-theme="dark"]{--bg:#1d1612;--card:#2a201a;--text:#fbeee0;--sub:#b89a84;--accent:#ff8a3d;--accent-text:#1d1612;--chip:#3a2b21;--chip-on:#ff8a3d;--chip-on-text:#1d1612}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+main{max-width:480px;margin:0 auto;padding:28px 20px 40px;text-align:center}
+h1{font-size:22px;margin:0 0 4px}
+p.sub{margin:0 0 20px;color:var(--sub);font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:22px}
+.chip{border:0;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;background:var(--chip);color:var(--text);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--chip-on);color:var(--chip-on-text);font-weight:700}
+.result{background:var(--card);border-radius:24px;padding:36px 16px;margin-bottom:18px;min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 14px rgba(120,60,20,.12)}
+.emoji{font-size:64px;line-height:1}
+.name{font-size:34px;font-weight:800}
+.cat{font-size:14px;color:var(--sub)}
+.result.spin .name{opacity:.55}
+.btn{width:100%;border:0;border-radius:16px;padding:16px;font:inherit;font-size:18px;font-weight:800;background:var(--accent);color:var(--accent-text);cursor:pointer}
+.btn:active{transform:scale(.98)}
+.row{display:flex;gap:10px;margin-top:10px}
+.btn2{flex:1;border:2px solid var(--accent);border-radius:14px;padding:12px;font:inherit;font-size:15px;font-weight:700;background:transparent;color:var(--text);text-decoration:none;cursor:pointer}
+.hist{margin-top:22px;font-size:13px;color:var(--sub);word-break:keep-all}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <h1>오늘 뭐 먹지? 🍽️</h1>
+  <p class="sub">고르기 귀찮을 땐 눌러!</p>
+  <div class="chips" id="chips" role="group" aria-label="음식 종류"></div>
+  <div class="result" id="result" aria-live="polite">
+    <div class="emoji" id="emoji">🍴</div>
+    <div class="name" id="name">버튼을 눌러봐</div>
+    <div class="cat" id="cat">종류를 고르면 그 안에서만 뽑아요</div>
+  </div>
+  <button class="btn" id="go">돌리기!</button>
+  <div class="row">
+    <a class="btn2" id="baemin" href="https://www.baemin.com" target="_blank" rel="noopener" hidden>배민 열기</a>
+    <button class="btn2" id="again" hidden>다른 걸로</button>
+  </div>
+  <div class="hist" id="hist"></div>
+</main>
+<script>
+const data = {
+"치킨/튀김":["🍗","후라이드치킨,양념치킨,간장치킨,파닭,순살치킨,닭강정,치킨너겟,닭봉,닭날개,마늘치킨,치즈볼,오징어튀김,새우튀김,야채튀김,김말이튀김,고구마튀김,감자튀김,핫도그,치즈스틱,바베큐치킨,치킨텐더,닭똥집튀김,허니콤보,반반치킨"],
+"양식":["🍕","피자,페퍼로니피자,고르곤졸라피자,포테이토피자,불고기피자,햄버거,치즈버거,치킨버거,새우버거,수제버거,파스타,까르보나라,알리오올리오,토마토파스타,크림파스타,봉골레,라자냐,리조또,스테이크,함박스테이크,폭립,샐러드,치킨샐러드,샌드위치,클럽샌드위치,브리또,타코,퀘사디아,나초,감바스,오믈렛,프렌치토스트,그라탕,뇨끼,바비큐플래터,시저샐러드"],
+"중식":["🥡","짜장면,짬뽕,간짜장,쟁반짜장,짬뽕밥,잡채밥,짜장밥,볶음밥,새우볶음밥,탕수육,깐풍기,깐쇼새우,유린기,라조기,칠리새우,팔보채,멘보샤,꿔바로우,마파두부,마라탕,마라샹궈,훠궈,양꼬치,딤섬,울면,유산슬,동파육,중국냉면,고추잡채,꽃빵"],
+"일식":["🍣","초밥,연어초밥,회덮밥,연어덮밥,치라시,돈까스,치즈돈까스,히레카츠,카츠동,라멘,돈코츠라멘,우동,소바,냉소바,규동,오야코동,텐동,가츠샌드,가라아게,카레,오므라이스,타코야끼,오코노미야끼,야키토리,장어덮밥,사시미,나베,샤브샤브,롤초밥,에비후라이"],
+"분식":["🌶️","떡볶이,치즈떡볶이,로제떡볶이,짜장떡볶이,라볶이,김밥,참치김밥,치즈김밥,충무김밥,꼬마김밥,순대,쫄면,비빔국수,잔치국수,라면,치즈라면,어묵,어묵탕,오뎅꼬치,만두,군만두,물만두,김치만두,튀김만두,주먹밥,토스트,불닭볶음면,치즈불닭"],
+"고기/한식":["🥩","족발,불족발,보쌈,삼겹살,목살,항정살,갈비,양념갈비,LA갈비,갈비찜,불고기,제육볶음,오삼불고기,닭갈비,찜닭,닭볶음탕,닭발,무뼈닭발,곱창,막창,대창,양념곱창,순대곱창볶음,돼지갈비,차돌박이,육회,수육,오리불고기,오리로스,훈제오리,닭백숙,삼계탕,낙곱새,쭈꾸미볶음,아구찜,닭한마리,쌈밥,한정식,떡갈비,언양불고기"],
+"국물":["🍲","국밥,돼지국밥,순대국,소머리국밥,콩나물국밥,설렁탕,갈비탕,곰탕,육개장,김치찌개,된장찌개,순두부찌개,부대찌개,감자탕,뼈해장국,해장국,매운탕,알탕,동태탕,추어탕,냉면,물냉면,비빔냉면,칼국수,바지락칼국수,수제비,만두국,떡국,미역국,어죽"],
+"간단식":["🍱","도시락,한식도시락,비빔밥,돌솥비빔밥,덮밥,제육덮밥,불고기덮밥,참치마요덮밥,죽,전복죽,호박죽,김치볶음밥,샐러드볼,포케,컵밥,닭가슴살도시락,콩나물밥,곤드레밥,카레라이스,계란밥,낙지덮밥,장조림비빔밥,버섯덮밥,치킨마요덮밥,스팸마요덮밥"],
+"아시안":["🍜","쌀국수,팟타이,똠얌꿍,나시고렝,미고렝,반미,분짜,월남쌈,짜조,카오팟,그린커리,레드커리,치킨커리,버터치킨커리,난,탄두리치킨,케밥,샤와르마,팔라펠,락사,바쿠테,치킨라이스,스프링롤,사테,분보후에,쏨땀"],
+"카페/디저트":["🍰","케이크,치즈케이크,티라미수,빙수,팥빙수,망고빙수,와플,크로플,마카롱,붕어빵,호떡,츄러스,도넛,아이스크림,젤라또,쿠키,스콘,휘낭시에,까눌레,타르트,에그타르트,푸딩,크레페,탕후루,베이글,크로와상,소금빵,약과,흑당밀크티,버블티,과일컵"],
+"해산물":["🦐","회,모듬회,광어회,연어회,물회,해물탕,해물찜,조개구이,조개찜,대게,꽃게찜,간장게장,양념게장,새우장,랍스터,굴보쌈,낙지볶음,오징어볶음,문어숙회,장어구이,갈치조림,고등어구이,생선구이,코다리찜"],
+"야식/안주":["🍺","골뱅이무침,오돌뼈,닭똥집,먹태,쥐포,감자전,김치전,해물파전,부추전,모듬전,두부김치,계란찜,치즈계란말이,소시지야채볶음,콘치즈,건어물,육포,꼬치구이,닭꼬치,나가사끼짬뽕,국물닭발,순두부치즈,어묵우동,불막창"]
+};
+const seen = new Set();
+const foods = Object.entries(data).flatMap(([cat, [emoji, items]]) =>
+  items.split(",").map(name => ({name, emoji, cat}))
+).filter(f => !seen.has(f.name) && seen.add(f.name));
+const cats = ["전체", ...new Set(foods.map(f => f.cat))];
+let selectedCat = "전체";
+const history = [];
+const $ = id => document.getElementById(id);
+const chipsEl = $("chips");
+
+cats.forEach(c => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = c; b.setAttribute("aria-pressed", c === selectedCat);
+  b.onclick = () => { selectedCat = c; [...chipsEl.children].forEach(x => x.setAttribute("aria-pressed", x.textContent === c)); };
+  chipsEl.appendChild(b);
+});
+
+function pool(){ return selectedCat === "전체" ? foods : foods.filter(f => f.cat === selectedCat); }
+function show(f){ $("emoji").textContent = f.emoji; $("name").textContent = f.name; $("cat").textContent = f.cat; }
+
+let spinning = false;
+function roll(){
+  if (spinning) return;
+  spinning = true;
+  const list = pool(), res = $("result");
+  res.classList.add("spin");
+  let count = 0;
+  const total = 16;
+  const timer = setInterval(() => {
+    show(list[Math.floor(Math.random() * list.length)]);
+    if (++count >= total){
+      clearInterval(timer);
+      const last = history[history.length - 1];
+      let pick;
+      do { pick = list[Math.floor(Math.random() * list.length)]; } while (list.length > 1 && last && pick.name === last.name);
+      show(pick); res.classList.remove("spin");
+      history.push(pick);
+      $("hist").textContent = "지금까지: " + history.slice(-8).map(f => f.name).join(" → ");
+      $("baemin").hidden = false; $("again").hidden = false;
+      $("go").textContent = "다시 돌리기!";
+      spinning = false;
+    }
+  }, 70);
+}
+$("go").onclick = roll;
+$("again").onclick = roll;
+</script>
+</body>
+</html>
